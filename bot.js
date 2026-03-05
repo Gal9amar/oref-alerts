@@ -6,6 +6,7 @@ const TOKEN = process.env.BOT_TOKEN || '8621396960:AAGK-xk2nixwvrgi1FllQvRg9oMd8
 // ── Local history store ───────────────────────────────────────
 const alertHistory = [];
 const MAX_HISTORY = 5000;
+const geoCache = {}; // city name → {lat, lon}
 
 // ── Subscribers ───────────────────────────────────────────────
 const subscribers = new Set();
@@ -46,16 +47,61 @@ function tgRequest(method, params) {
 }
 
 function sendMessage(chatId, text, extra = {}) {
-  return tgRequest('sendMessage', {
-    chat_id: chatId,
-    text,
-    parse_mode: 'HTML',
-    ...extra
-  });
+  return tgRequest('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', ...extra });
 }
 
 function sendWithKeyboard(chatId, text) {
   return sendMessage(chatId, text, { reply_markup: MAIN_KEYBOARD });
+}
+
+function sendLocation(chatId, lat, lon, title) {
+  // Send interactive map pin — opens in Google Maps / Waze / Apple Maps
+  return tgRequest('sendVenue', {
+    chat_id: chatId,
+    latitude: lat,
+    longitude: lon,
+    title: title,
+    address: 'לחץ לפתיחה במפה',
+  });
+}
+
+// ── Geocoding via Nominatim (free, no key) ────────────────────
+function geocodeCity(cityName) {
+  // Strip area qualifiers like "תל אביב - מרכז העיר" → "תל אביב"
+  const cleanName = cityName.split(' - ')[0].trim();
+
+  if (geoCache[cleanName]) return Promise.resolve(geoCache[cleanName]);
+
+  return new Promise((resolve) => {
+    const query = encodeURIComponent(cleanName + ' ישראל');
+    const req = https.request({
+      hostname: 'nominatim.openstreetmap.org',
+      path: `/search?q=${query}&countrycodes=il&format=json&limit=1`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'OrefAlertsBot/1.0 (Telegram bot for Israeli alerts)',
+        'Accept-Language': 'he'
+      }
+    }, (res) => {
+      let body = '';
+      res.on('data', c => body += c);
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (data && data[0]) {
+            const result = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+            geoCache[cleanName] = result;
+            resolve(result);
+          } else {
+            resolve(null);
+          }
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(5000, () => { req.destroy(); resolve(null); });
+    req.end();
+  });
 }
 
 // ── Oref fetch ────────────────────────────────────────────────
@@ -70,7 +116,7 @@ function fetchCurrentAlert() {
         'Accept-Language': 'he-IL,he;q=0.9',
         'Referer': 'https://www.oref.org.il/',
         'X-Requested-With': 'XMLHttpRequest',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Host': 'www.oref.org.il'
       }
     }, (res) => {
@@ -100,24 +146,27 @@ function formatDate(ts) {
   return new Date(ts).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });
 }
 
-// ── Command handlers ──────────────────────────────────────────
+// ── Commands ──────────────────────────────────────────────────
 async function cmdStart(chatId) {
   subscribers.add(chatId);
   await sendWithKeyboard(chatId,
     `🚨 <b>בוט אזעקות פיקוד העורף</b>\n\n` +
     `ברוך הבא! נרשמת לקבל התראות בזמן אמת ✅\n\n` +
-    `השתמש במקלדת למטה לניווט:`
+    `בכל אזעקה תקבל:\n` +
+    `• הודעה עם שם האזור\n` +
+    `• 📍 פין מפה אינטראקטיבי\n\n` +
+    `השתמש במקלדת למטה:`
   );
 }
 
 async function cmdStop(chatId) {
   subscribers.delete(chatId);
-  await sendWithKeyboard(chatId, '🔕 הוסרת מרשימת ההתראות.\nלחץ "🔔 הרשם להתראות" כדי לחזור.');
+  await sendWithKeyboard(chatId, '🔕 הוסרת מרשימת ההתראות.');
 }
 
 async function cmdSubscribe(chatId) {
   subscribers.add(chatId);
-  await sendWithKeyboard(chatId, '🔔 נרשמת! תקבל התראה מיידית על כל אזעקה ✅');
+  await sendWithKeyboard(chatId, '🔔 נרשמת! תקבל התראה + מפה על כל אזעקה ✅');
 }
 
 async function cmdNow(chatId) {
@@ -132,6 +181,9 @@ async function cmdNow(chatId) {
     `📋 <b>${alert.title || 'התרעה'}</b>\n\n` +
     `📍 <b>אזורים:</b>\n• ${cities}`
   );
+  // Send map for first city
+  const geo = await geocodeCity(alert.data[0]);
+  if (geo) await sendLocation(chatId, geo.lat, geo.lon, alert.data[0]);
 }
 
 async function cmdStats(chatId) {
@@ -162,12 +214,11 @@ async function cmdStats(chatId) {
   sorted.slice(0, 15).forEach(([city, count], i) => {
     msg += `${i + 1}. ${city} — <b>${count}</b>\n`;
   });
-
   await sendWithKeyboard(chatId, msg);
 }
 
 async function cmdCityPrompt(chatId) {
-  await sendMessage(chatId, '🔍 שלח את שם העיר לחיפוש:\nלדוגמה: <code>תל אביב</code>', {
+  await sendMessage(chatId, '🔍 שלח את שם העיר לחיפוש:', {
     reply_markup: { force_reply: true, input_field_placeholder: 'שם העיר...' }
   });
 }
@@ -196,27 +247,30 @@ async function cmdCity(chatId, cityName) {
   if (matches.length > 20) msg += `\n...ועוד ${matches.length - 20} נוספות`;
 
   await sendWithKeyboard(chatId, msg);
+
+  // Send map location
+  const geo = await geocodeCity(cityName);
+  if (geo) await sendLocation(chatId, geo.lat, geo.lon, cityName);
 }
 
-// ── Route incoming messages ───────────────────────────────────
+// ── Route messages ────────────────────────────────────────────
 async function handleMessage(msg) {
   const chatId = msg.chat.id;
   const text = (msg.text || '').trim();
 
-  if (text === '/start' || text.startsWith('/start '))   return cmdStart(chatId);
-  if (text === '/stop')                                   return cmdStop(chatId);
-  if (text === '/now'  || text === '🚨 אזעקות עכשיו')    return cmdNow(chatId);
-  if (text === '/stats'|| text === '📊 סטטיסטיקות 24 שעות') return cmdStats(chatId);
-  if (text === '🔔 הרשם להתראות')                        return cmdSubscribe(chatId);
-  if (text === '🔕 הפסק התראות')                         return cmdStop(chatId);
-  if (text === '🔍 חיפוש לפי עיר')                      return cmdCityPrompt(chatId);
+  if (text === '/start' || text.startsWith('/start '))        return cmdStart(chatId);
+  if (text === '/stop')                                        return cmdStop(chatId);
+  if (text === '/now'   || text === '🚨 אזעקות עכשיו')        return cmdNow(chatId);
+  if (text === '/stats' || text === '📊 סטטיסטיקות 24 שעות') return cmdStats(chatId);
+  if (text === '🔔 הרשם להתראות')                             return cmdSubscribe(chatId);
+  if (text === '🔕 הפסק התראות')                              return cmdStop(chatId);
+  if (text === '🔍 חיפוש לפי עיר')                           return cmdCityPrompt(chatId);
   if (text.startsWith('/city'))
     return cmdCity(chatId, text.replace('/city', '').replace(/@\w+/, '').trim());
+  if (text && !text.startsWith('/'))
+    return cmdCity(chatId, text);
 
-  // Treat any other text as a city search (reply to force_reply or direct input)
-  if (text && !text.startsWith('/')) return cmdCity(chatId, text);
-
-  await sendWithKeyboard(chatId, '❓ השתמש במקלדת למטה לניווט.');
+  await sendWithKeyboard(chatId, '❓ השתמש במקלדת למטה.');
 }
 
 // ── Real-time alert polling ───────────────────────────────────
@@ -232,7 +286,6 @@ async function pollAlerts() {
     if (alertId === lastAlertId) return;
     lastAlertId = alertId;
 
-    // Save to history
     alertHistory.unshift({
       timestamp: Date.now(),
       title: alert.title || 'התרעה',
@@ -242,22 +295,34 @@ async function pollAlerts() {
     if (alertHistory.length > MAX_HISTORY) alertHistory.pop();
 
     console.log(`🚨 Alert: ${alert.data.join(', ')}`);
-
     if (subscribers.size === 0) return;
 
-    // Push notification — no buttons, just the alert
-    const cities = alert.data.join('\n• ');
     const now = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem' });
-    const msg =
+    const cities = alert.data.join('\n• ');
+
+    // 1. Push alert message (no buttons)
+    const alertMsg =
       `🚨🚨🚨 <b>אזעקה!</b> 🚨🚨🚨\n\n` +
       `📋 <b>${alert.title || 'התרעת פיקוד העורף'}</b>\n\n` +
       `📍 <b>אזורים:</b>\n• ${cities}\n\n` +
       `🕐 ${now}`;
 
     for (const chatId of subscribers) {
-      // Plain message, no reply_markup — pure push notification
-      sendMessage(chatId, msg).catch(() => {});
+      sendMessage(chatId, alertMsg).catch(() => {});
     }
+
+    // 2. Geocode first city and send map pin to all subscribers
+    const firstCity = alert.data[0];
+    if (firstCity) {
+      const geo = await geocodeCity(firstCity);
+      if (geo) {
+        for (const chatId of subscribers) {
+          sendLocation(chatId, geo.lat, geo.lon, firstCity).catch(() => {});
+        }
+        console.log(`📍 Map sent for ${firstCity}: ${geo.lat}, ${geo.lon}`);
+      }
+    }
+
   } catch (err) {
     console.error('Poll error:', err.message);
   }
@@ -288,13 +353,18 @@ async function main() {
   if (me.result) console.log(`✅ @${me.result.username}`);
 
   setInterval(pollAlerts, 2000);
-
   const loop = async () => { await getUpdates(); setImmediate(loop); };
   loop();
 
   http.createServer((_, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, subscribers: subscribers.size, history: alertHistory.length, uptime: Math.round(process.uptime()) }));
+    res.end(JSON.stringify({
+      ok: true,
+      subscribers: subscribers.size,
+      history: alertHistory.length,
+      geoCached: Object.keys(geoCache).length,
+      uptime: Math.round(process.uptime())
+    }));
   }).listen(process.env.PORT || 3001, () => console.log(`✅ Health on :${process.env.PORT || 3001}`));
 }
 
