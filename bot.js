@@ -3,13 +3,24 @@ const http = require('http');
 
 const TOKEN = process.env.BOT_TOKEN || '8621396960:AAGK-xk2nixwvrgi1FllQvRg9oMd82ttcQA';
 
-// ── Local history store (in-memory, built from real-time polling) ──
-const alertHistory = []; // { alertDate, title, data, id }
+// ── Local history store ───────────────────────────────────────
+const alertHistory = [];
 const MAX_HISTORY = 5000;
 
 // ── Subscribers ───────────────────────────────────────────────
 const subscribers = new Set();
 let lastAlertId = null;
+
+// ── Keyboard ──────────────────────────────────────────────────
+const MAIN_KEYBOARD = {
+  keyboard: [
+    ['🚨 אזעקות עכשיו', '📊 סטטיסטיקות 24 שעות'],
+    ['🔔 הרשם להתראות', '🔕 הפסק התראות'],
+    ['🔍 חיפוש לפי עיר']
+  ],
+  resize_keyboard: true,
+  persistent: true
+};
 
 // ── Telegram helpers ──────────────────────────────────────────
 function tgRequest(method, params) {
@@ -35,10 +46,19 @@ function tgRequest(method, params) {
 }
 
 function sendMessage(chatId, text, extra = {}) {
-  return tgRequest('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', ...extra });
+  return tgRequest('sendMessage', {
+    chat_id: chatId,
+    text,
+    parse_mode: 'HTML',
+    ...extra
+  });
 }
 
-// ── Oref real-time alerts (works from non-Israeli IP sometimes) ─
+function sendWithKeyboard(chatId, text) {
+  return sendMessage(chatId, text, { reply_markup: MAIN_KEYBOARD });
+}
+
+// ── Oref fetch ────────────────────────────────────────────────
 function fetchCurrentAlert() {
   return new Promise((resolve) => {
     const req = https.request({
@@ -67,40 +87,47 @@ function fetchCurrentAlert() {
   });
 }
 
-// ── Filter last 24h ───────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 function getLast24h() {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return alertHistory.filter(a => a.timestamp >= cutoff);
 }
 
-// ── Commands ──────────────────────────────────────────────────
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
+}
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });
+}
+
+// ── Command handlers ──────────────────────────────────────────
 async function cmdStart(chatId) {
   subscribers.add(chatId);
-  await sendMessage(chatId,
+  await sendWithKeyboard(chatId,
     `🚨 <b>בוט אזעקות פיקוד העורף</b>\n\n` +
-    `נרשמת לקבל התראות בזמן אמת! ✅\n\n` +
-    `<b>פקודות:</b>\n` +
-    `/start — הרשמה להתראות\n` +
-    `/stop — הפסקת התראות\n` +
-    `/now — אזעקות פעילות כרגע\n` +
-    `/stats — סטטיסטיקות 24 שעות\n` +
-    `/city [שם עיר] — חיפוש לפי עיר`
+    `ברוך הבא! נרשמת לקבל התראות בזמן אמת ✅\n\n` +
+    `השתמש במקלדת למטה לניווט:`
   );
 }
 
 async function cmdStop(chatId) {
   subscribers.delete(chatId);
-  await sendMessage(chatId, '🔕 הוסרת מרשימת ההתראות.');
+  await sendWithKeyboard(chatId, '🔕 הוסרת מרשימת ההתראות.\nלחץ "🔔 הרשם להתראות" כדי לחזור.');
+}
+
+async function cmdSubscribe(chatId) {
+  subscribers.add(chatId);
+  await sendWithKeyboard(chatId, '🔔 נרשמת! תקבל התראה מיידית על כל אזעקה ✅');
 }
 
 async function cmdNow(chatId) {
   const alert = await fetchCurrentAlert();
   if (!alert || !alert.data || alert.data.length === 0) {
-    await sendMessage(chatId, '✅ אין אזעקות פעילות כרגע.');
+    await sendWithKeyboard(chatId, '✅ אין אזעקות פעילות כרגע.');
     return;
   }
   const cities = alert.data.join('\n• ');
-  await sendMessage(chatId,
+  await sendWithKeyboard(chatId,
     `🚨 <b>אזעקה פעילה עכשיו!</b>\n\n` +
     `📋 <b>${alert.title || 'התרעה'}</b>\n\n` +
     `📍 <b>אזורים:</b>\n• ${cities}`
@@ -109,20 +136,17 @@ async function cmdNow(chatId) {
 
 async function cmdStats(chatId) {
   const recent = getLast24h();
-
   if (recent.length === 0) {
     const uptime = Math.round(process.uptime() / 60);
-    await sendMessage(chatId,
+    await sendWithKeyboard(chatId,
       `📊 <b>סטטיסטיקות 24 שעות</b>\n\n` +
-      `הבוט רץ ${uptime} דקות.\n` +
       (uptime < 60
-        ? `הבוט עוד לא פועל מספיק זמן לצבור היסטוריה.\nכשתהיה אזעקה — היא תישמר אוטומטית! 🔄`
+        ? `הבוט רץ ${uptime} דקות — עוד לא נצברה היסטוריה.\nברגע שתהיה אזעקה, היא תירשם אוטומטית 🔄`
         : `✅ לא היו אזעקות ב-24 השעות האחרונות.`)
     );
     return;
   }
 
-  // Count by city
   const cityCount = {};
   recent.forEach(a => {
     (Array.isArray(a.data) ? a.data : [a.data]).forEach(city => {
@@ -131,25 +155,25 @@ async function cmdStats(chatId) {
   });
 
   const sorted = Object.entries(cityCount).sort((a, b) => b[1] - a[1]);
-  const top15 = sorted.slice(0, 15);
-
   let msg = `📊 <b>סטטיסטיקות 24 שעות אחרונות</b>\n\n`;
   msg += `🔢 סה"כ אזעקות: <b>${recent.length}</b>\n`;
   msg += `🏙️ יישובים: <b>${sorted.length}</b>\n\n`;
   msg += `<b>🏆 Top יישובים:</b>\n`;
-  top15.forEach(([city, count], i) => {
-    const bar = '█'.repeat(Math.min(count, 8)) + '░'.repeat(Math.max(0, 8 - count));
+  sorted.slice(0, 15).forEach(([city, count], i) => {
     msg += `${i + 1}. ${city} — <b>${count}</b>\n`;
   });
 
-  await sendMessage(chatId, msg);
+  await sendWithKeyboard(chatId, msg);
+}
+
+async function cmdCityPrompt(chatId) {
+  await sendMessage(chatId, '🔍 שלח את שם העיר לחיפוש:\nלדוגמה: <code>תל אביב</code>', {
+    reply_markup: { force_reply: true, input_field_placeholder: 'שם העיר...' }
+  });
 }
 
 async function cmdCity(chatId, cityName) {
-  if (!cityName) {
-    await sendMessage(chatId, '❓ שימוש: /city [שם עיר]\nלדוגמה: <code>/city תל אביב</code>');
-    return;
-  }
+  if (!cityName) { await cmdCityPrompt(chatId); return; }
 
   const recent = getLast24h();
   const matches = recent.filter(a => {
@@ -158,26 +182,44 @@ async function cmdCity(chatId, cityName) {
   });
 
   if (matches.length === 0) {
-    const total = recent.length;
-    await sendMessage(chatId,
+    await sendWithKeyboard(chatId,
       `🔍 לא נמצאו אזעקות עבור "<b>${cityName}</b>" ב-24 שעות האחרונות.\n` +
-      (total > 0 ? `(סה"כ ${total} אזעקות נרשמו מאז הפעלת הבוט)` : `(הבוט עוד לא צבר היסטוריה)`)
+      (recent.length > 0 ? `(סה"כ ${recent.length} אזעקות נרשמו)` : `(הבוט עוד לא צבר היסטוריה)`)
     );
     return;
   }
 
-  let msg = `📍 <b>אזעקות — ${cityName}</b>\nסה"כ: <b>${matches.length}</b>\n\n`;
+  let msg = `📍 <b>${cityName}</b> — ${matches.length} אזעקות (24 שעות)\n\n`;
   matches.slice(0, 20).forEach(a => {
-    const time = new Date(a.timestamp).toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
-    const date = new Date(a.timestamp).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });
-    msg += `🕐 ${date} ${time} — ${a.title || 'אזעקה'}\n`;
+    msg += `🕐 ${formatDate(a.timestamp)} ${formatTime(a.timestamp)} — ${a.title || 'אזעקה'}\n`;
   });
   if (matches.length > 20) msg += `\n...ועוד ${matches.length - 20} נוספות`;
 
-  await sendMessage(chatId, msg);
+  await sendWithKeyboard(chatId, msg);
 }
 
-// ── Real-time polling + history accumulation ──────────────────
+// ── Route incoming messages ───────────────────────────────────
+async function handleMessage(msg) {
+  const chatId = msg.chat.id;
+  const text = (msg.text || '').trim();
+
+  if (text === '/start' || text.startsWith('/start '))   return cmdStart(chatId);
+  if (text === '/stop')                                   return cmdStop(chatId);
+  if (text === '/now'  || text === '🚨 אזעקות עכשיו')    return cmdNow(chatId);
+  if (text === '/stats'|| text === '📊 סטטיסטיקות 24 שעות') return cmdStats(chatId);
+  if (text === '🔔 הרשם להתראות')                        return cmdSubscribe(chatId);
+  if (text === '🔕 הפסק התראות')                         return cmdStop(chatId);
+  if (text === '🔍 חיפוש לפי עיר')                      return cmdCityPrompt(chatId);
+  if (text.startsWith('/city'))
+    return cmdCity(chatId, text.replace('/city', '').replace(/@\w+/, '').trim());
+
+  // Treat any other text as a city search (reply to force_reply or direct input)
+  if (text && !text.startsWith('/')) return cmdCity(chatId, text);
+
+  await sendWithKeyboard(chatId, '❓ השתמש במקלדת למטה לניווט.');
+}
+
+// ── Real-time alert polling ───────────────────────────────────
 async function pollAlerts() {
   try {
     const alert = await fetchCurrentAlert();
@@ -190,30 +232,30 @@ async function pollAlerts() {
     if (alertId === lastAlertId) return;
     lastAlertId = alertId;
 
-    // Save to local history
-    const entry = {
-      alertDate: new Date().toISOString(),
+    // Save to history
+    alertHistory.unshift({
       timestamp: Date.now(),
       title: alert.title || 'התרעה',
       data: alert.data,
       id: alertId
-    };
-    alertHistory.unshift(entry);
+    });
     if (alertHistory.length > MAX_HISTORY) alertHistory.pop();
 
     console.log(`🚨 Alert: ${alert.data.join(', ')}`);
 
     if (subscribers.size === 0) return;
 
+    // Push notification — no buttons, just the alert
     const cities = alert.data.join('\n• ');
     const now = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem' });
     const msg =
-      `🚨🚨 <b>אזעקה!</b> 🚨🚨\n\n` +
+      `🚨🚨🚨 <b>אזעקה!</b> 🚨🚨🚨\n\n` +
       `📋 <b>${alert.title || 'התרעת פיקוד העורף'}</b>\n\n` +
       `📍 <b>אזורים:</b>\n• ${cities}\n\n` +
       `🕐 ${now}`;
 
     for (const chatId of subscribers) {
+      // Plain message, no reply_markup — pure push notification
       sendMessage(chatId, msg).catch(() => {});
     }
   } catch (err) {
@@ -221,36 +263,16 @@ async function pollAlerts() {
   }
 }
 
-// ── Long polling for commands ─────────────────────────────────
+// ── Long polling ──────────────────────────────────────────────
 let offset = 0;
 
 async function getUpdates() {
   try {
-    const res = await tgRequest('getUpdates', {
-      offset,
-      timeout: 30,
-      allowed_updates: ['message']
-    });
+    const res = await tgRequest('getUpdates', { offset, timeout: 30, allowed_updates: ['message'] });
     if (!res.ok || !res.result) return;
-
     for (const update of res.result) {
       offset = update.update_id + 1;
-      const msg = update.message;
-      if (!msg || !msg.text) continue;
-
-      const chatId = msg.chat.id;
-      const text = msg.text.trim();
-      console.log(`[${chatId}] ${text}`);
-
-      if (text.startsWith('/start'))      await cmdStart(chatId);
-      else if (text.startsWith('/stop'))  await cmdStop(chatId);
-      else if (text.startsWith('/now'))   await cmdNow(chatId);
-      else if (text.startsWith('/stats')) await cmdStats(chatId);
-      else if (text.startsWith('/city')) {
-        await cmdCity(chatId, text.replace('/city', '').replace(/@\w+/, '').trim());
-      } else {
-        await sendMessage(chatId, '❓ פקודה לא מוכרת.\nשלח /start לרשימת הפקודות.');
-      }
+      if (update.message) await handleMessage(update.message).catch(console.error);
     }
   } catch (err) {
     console.error('getUpdates error:', err.message);
@@ -260,34 +282,20 @@ async function getUpdates() {
 
 // ── Main ──────────────────────────────────────────────────────
 async function main() {
-  console.log('🤖 Oref Telegram Bot starting...');
+  console.log('🤖 Oref Bot starting...');
   await tgRequest('deleteWebhook', {});
-
   const me = await tgRequest('getMe', {});
-  if (me.result) console.log(`✅ Bot: @${me.result.username}`);
+  if (me.result) console.log(`✅ @${me.result.username}`);
 
-  // Poll oref every 2 seconds
   setInterval(pollAlerts, 2000);
 
-  // Long polling loop
-  const loop = async () => {
-    await getUpdates();
-    setImmediate(loop);
-  };
+  const loop = async () => { await getUpdates(); setImmediate(loop); };
   loop();
 
-  // Health server for Railway
-  http.createServer((req, res) => {
+  http.createServer((_, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      ok: true,
-      subscribers: subscribers.size,
-      historyCount: alertHistory.length,
-      uptime: Math.round(process.uptime())
-    }));
-  }).listen(process.env.PORT || 3001, () => {
-    console.log(`✅ Health server on port ${process.env.PORT || 3001}`);
-  });
+    res.end(JSON.stringify({ ok: true, subscribers: subscribers.size, history: alertHistory.length, uptime: Math.round(process.uptime()) }));
+  }).listen(process.env.PORT || 3001, () => console.log(`✅ Health on :${process.env.PORT || 3001}`));
 }
 
 main().catch(console.error);
