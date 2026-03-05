@@ -227,10 +227,15 @@ fetch(API_URL)
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   })
-  .then(render)
+  .then(data => {
+    if (data && data.error === 'geo_blocked') {
+      showError('שרתי Netlify חסומים ע"י פיקוד העורף (חסימת IP גיאוגרפי).<br><br>פיקוד העורף מאפשר גישה מ-IP ישראלי בלבד.');
+      return;
+    }
+    render(data);
+  })
   .catch(err => {
-    showError(`לא ניתן למשוך נתונים מפיקוד העורף.<br><br>
-      <small style="color:#555">${err.message}</small>`);
+    showError(`שגיאה בטעינת הנתונים.<br><br><small style="color:#555">${err.message}</small>`);
   });
 </script>
 </body>

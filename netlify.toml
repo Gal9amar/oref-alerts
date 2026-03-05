@@ -1,13 +1,19 @@
 [build]
-  functions = "netlify/functions"
   publish = "."
+  edge_functions = "netlify/edge-functions"
 
+# Edge functions handle /api/* routes
+# (defined via config export in each edge function file)
+
+# Fallback redirects for classic functions (kept as backup)
 [[redirects]]
   from = "/api/history"
   to = "/.netlify/functions/history"
   status = 200
+  force = false
 
 [[redirects]]
   from = "/api/alerts"
   to = "/.netlify/functions/alerts"
   status = 200
+  force = false
