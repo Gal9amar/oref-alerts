@@ -2,30 +2,17 @@
 
 דשבורד להצגת אזעקות פיקוד העורף ב-24 השעות האחרונות לפי יישובים.
 
-## פריסה על Netlify
+פרוס על Netlify — הכל עובד אוטומטית, אין צורך בשרת מקומי.
 
-1. חבר את הריפו ל-Netlify
-2. Build settings:
-   - **Publish directory:** `.`
-   - **Functions directory:** `netlify/functions`
-3. פרוס — הכל אוטומטי ✅
+## קישור לאתר
+מחובר לריפו דרך Netlify — כל push מפרוס אוטומטית.
 
-## פיתוח מקומי עם Netlify CLI
-
-```bash
-npm install -g netlify-cli
-netlify dev
-```
-
-פתח: **http://localhost:8888**
-
-## ארכיטקטורה
+## מבנה הפרויקט
 
 ```
-דפדפן → Netlify Function (proxy) → oref.org.il API
+├── index.html               # הדשבורד
+├── netlify.toml             # הגדרות Netlify
+└── netlify/functions/
+    ├── history.js           # proxy → היסטוריית אזעקות
+    └── alerts.js            # proxy → אזעקות בזמן אמת
 ```
-
-- `/api/history` → `netlify/functions/history.js`
-- `/api/alerts`  → `netlify/functions/alerts.js`
-
-> **חשוב:** הפונקציות רצות בסרברי Netlify — חסימת ה-CORS וה-IP נפתרות אוטומטית.
