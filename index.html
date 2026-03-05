@@ -113,7 +113,7 @@
 <div class="main">
   <div id="loading" class="loading-screen">
     <div class="spinner"></div>
-    <div>מתחבר לשרת הפרוקסי המקומי...</div>
+    <div>טוען נתונים מפיקוד העורף...</div>
   </div>
   <div id="error-container" style="display:none"></div>
   <div id="content" style="display:none">
@@ -126,7 +126,7 @@
 </div>
 
 <script>
-// Uses local proxy server to bypass CORS & geo-block
+// Uses Netlify Functions as proxy
 const API_URL = '/api/history';
 
 function isWithin24h(alertDate) {
@@ -229,9 +229,7 @@ fetch(API_URL)
   })
   .then(render)
   .catch(err => {
-    showError(`לא ניתן להתחבר לשרת הפרוקסי המקומי.<br><br>
-      ודא ששרת הפרוקסי רץ:<br>
-      <code style="background:#1c1c28;padding:4px 10px;border-radius:4px;font-size:13px">node server.js</code><br><br>
+    showError(`לא ניתן למשוך נתונים מפיקוד העורף.<br><br>
       <small style="color:#555">${err.message}</small>`);
   });
 </script>
