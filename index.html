@@ -17,16 +17,8 @@
     --text-muted: #7777aa;
     --accent: #ff6b6b;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Assistant', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    direction: rtl;
-  }
+  body { font-family: 'Assistant', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; }
 
   header {
     background: linear-gradient(135deg, #1a0005, #0a0a0f);
@@ -35,258 +27,70 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: sticky; top: 0; z-index: 100;
   }
-
   .siren-icon {
-    width: 40px;
-    height: 40px;
-    background: var(--red);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    animation: pulse 2s infinite;
-    flex-shrink: 0;
+    width: 40px; height: 40px; background: var(--red); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    animation: pulse 2s infinite; flex-shrink: 0;
   }
-
   @keyframes pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.7); }
     50% { box-shadow: 0 0 0 12px rgba(230,57,70,0); }
   }
-
-  header h1 {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
+  header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
   header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
   .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px; background: var(--border); border-bottom: 1px solid var(--border);
   }
+  .stat { background: var(--surface); padding: 20px 24px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
 
-  .stat {
-    background: var(--surface);
-    padding: 20px 24px;
-    text-align: center;
-  }
-
-  .stat-num {
-    font-size: 36px;
-    font-weight: 800;
-    color: var(--accent);
-    line-height: 1;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .main {
-    padding: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
+  .main { padding: 32px; max-width: 1200px; margin: 0 auto; }
   .section-title {
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-muted); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
   }
 
-  /* City Grid */
-  .city-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin-bottom: 40px;
-  }
-
+  .city-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 40px; }
   .city-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.2s;
-    cursor: default;
-    animation: fadeIn 0.4s ease both;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; display: flex; justify-content: space-between; align-items: center;
+    transition: all 0.2s; cursor: default; animation: fadeIn 0.4s ease both;
   }
-
-  .city-card:hover {
-    border-color: var(--red);
-    background: var(--surface2);
-    transform: translateY(-1px);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .city-name {
-    font-size: 14px;
-    font-weight: 600;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
+  .city-card:hover { border-color: var(--red); background: var(--surface2); transform: translateY(-1px); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .city-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .city-count {
-    background: var(--red);
-    color: white;
-    font-weight: 800;
-    font-size: 13px;
-    min-width: 28px;
-    height: 28px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
-    margin-right: 10px;
-    flex-shrink: 0;
+    background: var(--red); color: white; font-weight: 800; font-size: 13px;
+    min-width: 28px; height: 28px; border-radius: 14px; display: flex;
+    align-items: center; justify-content: center; padding: 0 8px; margin-right: 10px; flex-shrink: 0;
   }
+  .bar { height: 3px; background: linear-gradient(90deg, var(--red), transparent); border-radius: 2px; margin-top: 8px; }
 
-  .bar {
-    height: 3px;
-    background: linear-gradient(90deg, var(--red), transparent);
-    border-radius: 2px;
-    margin-top: 8px;
-  }
-
-  /* Timeline */
-  .timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 40px;
-  }
-
+  .timeline { display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px; }
   .timeline-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 16px; font-size: 14px;
     animation: fadeIn 0.3s ease both;
   }
-
-  .timeline-item:hover {
-    border-color: var(--border);
-    background: var(--surface2);
-  }
-
-  .t-time {
-    color: var(--text-muted);
-    font-size: 12px;
-    white-space: nowrap;
-    min-width: 90px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .t-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    flex-shrink: 0;
-  }
-
+  .timeline-item:hover { background: var(--surface2); }
+  .t-time { color: var(--text-muted); font-size: 12px; white-space: nowrap; min-width: 130px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .t-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
   .t-city { font-weight: 700; flex: 1; }
-  .t-type { color: var(--text-muted); font-size: 12px; }
+  .category-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
 
-  /* Loading / Error */
-  .loading-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 32px;
-    gap: 16px;
-    color: var(--text-muted);
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--red);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
+  .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 32px; gap: 16px; color: var(--text-muted); }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .error-box {
-    background: rgba(230,57,70,0.1);
-    border: 1px solid var(--red-dark);
-    border-radius: 10px;
-    padding: 24px;
-    text-align: center;
-    color: var(--accent);
-    font-size: 14px;
-    line-height: 1.7;
-  }
-
-  .refresh-btn {
-    margin-top: 16px;
-    background: var(--red);
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-family: 'Assistant', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .refresh-btn:hover { background: var(--red-dark); }
-
-  .last-update {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: left;
-    margin-bottom: 24px;
-  }
-
-  .category-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
+  .error-box { background: rgba(230,57,70,0.1); border: 1px solid var(--red-dark); border-radius: 10px; padding: 24px; text-align: center; color: var(--accent); font-size: 14px; line-height: 1.7; }
+  .refresh-btn { margin-top: 16px; background: var(--red); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-family: 'Assistant', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .last-update { font-size: 12px; color: var(--text-muted); text-align: left; margin-bottom: 24px; }
+  .no-alerts { text-align: center; padding: 60px; color: var(--text-muted); font-size: 18px; }
 </style>
 </head>
 <body>
@@ -302,90 +106,75 @@
 <div class="stats-bar" id="stats-bar" style="display:none">
   <div class="stat"><div class="stat-num" id="s-total">-</div><div class="stat-label">סה"כ אזעקות</div></div>
   <div class="stat"><div class="stat-num" id="s-cities">-</div><div class="stat-label">יישובים</div></div>
-  <div class="stat"><div class="stat-num" id="s-top-city">-</div><div class="stat-label">יישוב מוביל</div></div>
+  <div class="stat"><div class="stat-num" id="s-top">-</div><div class="stat-label">יישוב מוביל</div></div>
   <div class="stat"><div class="stat-num" id="s-last">-</div><div class="stat-label">אזעקה אחרונה</div></div>
 </div>
 
 <div class="main">
   <div id="loading" class="loading-screen">
     <div class="spinner"></div>
-    <div>מושך נתונים מפיקוד העורף...</div>
+    <div>מתחבר לשרת הפרוקסי המקומי...</div>
   </div>
   <div id="error-container" style="display:none"></div>
   <div id="content" style="display:none">
     <div class="last-update" id="last-update"></div>
-
     <div class="section-title">אזעקות לפי יישוב</div>
     <div class="city-grid" id="city-grid"></div>
-
     <div class="section-title">ציר זמן אזעקות</div>
     <div class="timeline" id="timeline"></div>
   </div>
 </div>
 
 <script>
-const ALERTS_URL = 'https://www.oref.org.il/WarningMessages/History/AlertsHistory.json';
+// Uses local proxy server to bypass CORS & geo-block
+const API_URL = 'http://localhost:3001/api/history';
 
-async function fetchAlerts() {
-  const response = await fetch(ALERTS_URL, {
-    headers: {
-      'Referer': 'https://www.oref.org.il/',
-      'X-Requested-With': 'XMLHttpRequest'
-    },
-    cache: 'no-store'
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.json();
-}
-
-function isWithin24h(dateStr, timeStr) {
+function isWithin24h(alertDate) {
   try {
-    // format: "13.03.2024" / "13:31"
-    const [d, m, y] = dateStr.split('.');
-    const dt = new Date(`${y}-${m}-${d}T${timeStr}:00`);
+    const dt = new Date(alertDate.replace(' ', 'T'));
     return (Date.now() - dt.getTime()) < 24 * 60 * 60 * 1000;
-  } catch { return false; }
+  } catch { return true; } // include if can't parse
 }
 
 function render(data) {
-  // Filter last 24h
-  const alerts = data.filter(a => isWithin24h(a.alertDate ? a.alertDate.split(' ')[0].split('-').reverse().join('.') : a.date, a.alertDate ? a.alertDate.split(' ')[1].substring(0,5) : a.time));
+  if (!Array.isArray(data) || data.length === 0) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('city-grid').innerHTML = '<div class="no-alerts">✅ לא נמצאו אזעקות ב-24 שעות האחרונות</div>';
+    return;
+  }
+
+  // Filter last 24h — alertDate format: "2024-03-05 14:32:00"
+  const alerts = data.filter(a => isWithin24h(a.alertDate));
 
   if (alerts.length === 0) {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('error-container').style.display = 'block';
-    document.getElementById('error-container').innerHTML = `
-      <div class="error-box">
-        <div style="font-size:32px;margin-bottom:8px">✅</div>
-        <div>לא נמצאו אזעקות ב-24 השעות האחרונות</div>
-      </div>`;
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('city-grid').innerHTML = '<div class="no-alerts">✅ לא נמצאו אזעקות ב-24 השעות האחרונות</div>';
     return;
   }
 
   // Count by city
   const cityCount = {};
   alerts.forEach(a => {
-    const city = a.data || a.city || 'לא ידוע';
+    const city = a.data || '-';
     cityCount[city] = (cityCount[city] || 0) + 1;
   });
 
-  const sorted = Object.entries(cityCount).sort((a,b) => b[1] - a[1]);
+  const sorted = Object.entries(cityCount).sort((a, b) => b[1] - a[1]);
   const maxCount = sorted[0][1];
 
   // Stats
   document.getElementById('s-total').textContent = alerts.length;
   document.getElementById('s-cities').textContent = sorted.length;
-  document.getElementById('s-top-city').textContent = sorted[0][0].split(' - ')[0];
-
-  const lastAlert = alerts[0];
-  const lastTime = lastAlert.alertDate ? lastAlert.alertDate.split(' ')[1].substring(0,5) : lastAlert.time;
+  document.getElementById('s-top').textContent = sorted[0][0].split(' - ')[0].substring(0, 8);
+  const lastTime = alerts[0].alertDate ? alerts[0].alertDate.split(' ')[1].substring(0,5) : '-';
   document.getElementById('s-last').textContent = lastTime;
   document.getElementById('header-sub').textContent = `עודכן: ${new Date().toLocaleTimeString('he-IL')} | ${alerts.length} אזעקות ב-24 שעות האחרונות`;
   document.getElementById('last-update').textContent = `נתונים נמשכו ב-${new Date().toLocaleString('he-IL')}`;
 
   // City grid
   const grid = document.getElementById('city-grid');
-  grid.innerHTML = '';
   sorted.forEach(([city, count], i) => {
     const pct = Math.round((count / maxCount) * 100);
     const card = document.createElement('div');
@@ -402,17 +191,15 @@ function render(data) {
 
   // Timeline
   const timeline = document.getElementById('timeline');
-  timeline.innerHTML = '';
-  alerts.slice(0, 100).forEach((a, i) => {
-    const time = a.alertDate ? a.alertDate.split(' ')[1].substring(0,5) : a.time;
-    const date = a.alertDate ? a.alertDate.split(' ')[0] : a.date;
-    const city = a.data || a.city || '-';
+  alerts.slice(0, 150).forEach((a, i) => {
+    const dt = a.alertDate || '-';
+    const city = a.data || '-';
     const title = a.title || 'אזעקה';
     const item = document.createElement('div');
     item.className = 'timeline-item';
     item.style.animationDelay = `${i * 0.02}s`;
     item.innerHTML = `
-      <span class="t-time">${date} ${time}</span>
+      <span class="t-time">${dt}</span>
       <span class="t-dot"></span>
       <span class="t-city">${city}</span>
       <span class="category-badge">${title}</span>`;
@@ -435,11 +222,17 @@ function showError(msg) {
     </div>`;
 }
 
-fetchAlerts()
+fetch(API_URL)
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
   .then(render)
   .catch(err => {
-    console.error(err);
-    showError(`לא ניתן היה למשוך נתונים מפיקוד העורף.<br>ייתכן שהגישה חסומה מחוץ לישראל, או שאין חיבור לאינטרנט.<br><br><small>${err.message}</small>`);
+    showError(`לא ניתן להתחבר לשרת הפרוקסי המקומי.<br><br>
+      ודא ששרת הפרוקסי רץ:<br>
+      <code style="background:#1c1c28;padding:4px 10px;border-radius:4px;font-size:13px">node server.js</code><br><br>
+      <small style="color:#555">${err.message}</small>`);
   });
 </script>
 </body>
